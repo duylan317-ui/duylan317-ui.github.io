@@ -1,0 +1,53 @@
+(function(){
+  if (window.__ybaChiHoi) return; window.__ybaChiHoi = 1;
+  var EXACT = {
+    " làm ăn với nhau.": " giao thương cùng nhau.",
+    "Ai đang làm ăn ở đâu": "Hội viên đang kinh doanh ở đâu",
+    "Tới tận nơi xem hội viên làm nghề.": "Đến tận doanh nghiệp, tìm hiểu mô hình kinh doanh của hội viên.",
+    "HOẠT ĐỘNG CỦA HỘI": "HOẠT ĐỘNG CỦA CHI HỘI",
+    "Hoạt động của hội": "Hoạt động của Chi hội",
+    "Tra cứu năng lực, sản phẩm và dịch vụ của các doanh nghiệp trong hội. Ưu tiên tìm nguồn hàng và đối tác ngay trong hội trước khi tìm ra bên ngoài.": "Tra cứu năng lực, sản phẩm và dịch vụ của các doanh nghiệp trong Chi hội. Ưu tiên tìm nguồn hàng và đối tác ngay trong Chi hội trước khi tìm ra bên ngoài.",
+    "Cập nhật những hoạt động mới nhất của hiệp hội": "Cập nhật những hoạt động mới nhất của Chi hội"
+  };
+  function fixAll(s){
+    if (EXACT[s] !== undefined) return EXACT[s];
+    if (/^\/dang-ky-hoi-vien/.test(location.pathname)) return s.replace(/Hiệp hội|hiệp hội/g, "Chi hội");
+    return s;
+  }
+  var RE = /(^|[^A-Za-zÀ-ỹ])(Chi |chi |CHI |Đại |đại |ĐẠI |cơ |Cơ |CƠ |xã |Xã |XÃ |hiệp |Hiệp |HIỆP |Tổng |tổng |TỔNG |Vĩnh |VĨNH |Liên |liên |LIÊN )?(hội|Hội|HỘI)(?![A-Za-zÀ-ỹ])(?!\s?(viên|Viên|VIÊN|nghị|NGHỊ|thảo|THẢO|trường|tụ|nhập|NHẬP|đồng|ĐỒNG|ngộ|thoại|phí|con|Doanh|DOANH|doanh|Liên|LIÊN|Nhà|Phụ|Cựu|Sinh|Nông|Chữ|Luật|Kế|Hữu))/g;
+  function fix(s){
+    if (EXACT[s] !== undefined) return EXACT[s];
+    if (!/hội|Hội|HỘI|làm ăn/.test(s)) return s;
+    return s.replace(RE, function(m, pre, before, w){
+      if (before) return m;
+      var rep = w === "HỘI" ? "CHI HỘI" : "Chi hội";
+      return pre + rep;
+    });
+  }
+  function skip(el){
+    for (var e = el; e; e = e.parentElement){
+      var t = e.tagName;
+      if (t === "SCRIPT" || t === "STYLE" || t === "TEXTAREA" || t === "INPUT" || e.isContentEditable) return true;
+      var c = typeof e.className === "string" ? e.className : "";
+      if (/\bprose\b|ql-editor|article-content|news-content/.test(c)) return true;
+    }
+    return false;
+  }
+  function off(){ return /^\/(admin|login)/.test(location.pathname); }
+  function roots(){ return /^\/(news|events|members|cho-nhu-cau)(\/|$)/.test(location.pathname) ? document.querySelectorAll("header, nav, footer, h1") : [document.body]; }
+  function run(){
+    if (off()) return;
+    var list = [];
+    Array.prototype.forEach.call(roots(), function(r){ var w = document.createTreeWalker(r, NodeFilter.SHOW_TEXT), n; while ((n = w.nextNode())) list.push(n); });
+    list.forEach(function(n){
+      var v = n.nodeValue; if (!v || v.length > 400) return;
+      var nv = fix(v); if (nv !== v && !skip(n.parentElement)) n.nodeValue = nv;
+    });
+    var w2 = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), m;
+    while ((m = w2.nextNode())) { var v2 = m.nodeValue; if (!v2 || v2.length > 400) continue; var n2 = fixAll(v2); if (n2 !== v2 && !skip(m.parentElement)) m.nodeValue = n2; }
+  }
+  var q = 0;
+  new MutationObserver(function(){ if (q) return; q = 1; requestAnimationFrame(function(){ q = 0; run(); }); })
+    .observe(document.body, { childList: true, subtree: true, characterData: true });
+  run();
+})();
